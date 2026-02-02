@@ -35,4 +35,15 @@ public class AuthController {
                 .status(HttpStatus.CREATED)
                 .body("Utilisateur créé avec succès");
     }
+
+    @RestController
+    @RequestMapping("/auth")
+    public class TestController {
+
+        @GetMapping("/test")
+        public String test() {
+            return "OK";
+        }
+    }
+
 }

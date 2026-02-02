@@ -57,17 +57,25 @@ public class AuthServiceImpl implements AuthService {
         @Override
         public LoginResponse login(LoginRequest request) {
 
+                Utilisateur utilisateur = utilisateurRepository
+                                .findByNomUtilisateur(request.getNomUtilisateur())
+                                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+                // 🔥 TEST CLÉ
+                boolean match = passwordEncoder.matches(
+                                request.getMotDePasse(),
+                                utilisateur.getMotDePasse());
+
+                System.out.println("🔐 PASSWORD MATCH = " + match);
+
+                // ⛔ SI ÇA AFFICHE false → LE PROBLÈME EST ICI
                 authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
                                                 request.getNomUtilisateur(),
                                                 request.getMotDePasse()));
 
-                Utilisateur utilisateur = utilisateurRepository
-                                .findByNomUtilisateur(request.getNomUtilisateur())
-                                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
                 String token = jwtService.generateToken(utilisateur.getNomUtilisateur());
-
                 return new LoginResponse(token);
         }
+
 }
