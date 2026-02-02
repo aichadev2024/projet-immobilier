@@ -3,9 +3,9 @@ spring:
     name: projet-immobilier
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/projet_immo
+    url: jdbc:postgresql://localhost:5433/projet_immo
     username: postgres
-    password: postgres
+    password: chacha22
     driver-class-name: org.postgresql.Driver
 
   jpa:

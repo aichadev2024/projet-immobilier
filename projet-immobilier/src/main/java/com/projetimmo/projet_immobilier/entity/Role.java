@@ -20,7 +20,6 @@ public class Role {
     @GeneratedValue
     @Column(nullable = false, updatable = false)
     private UUID id;
-
     @Column(nullable = false, unique = true)
     private String nom;
 

@@ -1,6 +1,7 @@
 package com.projetimmo.projet_immobilier.repository;
 
 import com.projetimmo.projet_immobilier.entity.Role;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
