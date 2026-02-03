@@ -14,8 +14,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         private final UtilisateurRepository utilisateurRepository;
 
         @Override
-        public UserDetails loadUserByUsername(String nomUtilisateur)
-                        throws UsernameNotFoundException {
+        public UserDetails loadUserByUsername(String nomUtilisateur) throws UsernameNotFoundException {
 
                 System.out.println("✅ LOGIN REÇU = [" + nomUtilisateur + "]");
 
@@ -25,15 +24,20 @@ public class CustomUserDetailsService implements UserDetailsService {
 
                 System.out.println("✅ USER TROUVÉ = " + utilisateur.getNomUtilisateur());
                 System.out.println("✅ MOT DE PASSE (DB) = " + utilisateur.getMotDePasse());
+                System.out.println("🔑 ROLE = "
+                                + (utilisateur.getRole() != null ? utilisateur.getRole().getNom() : "NULL"));
+
+                // Défaut à USER si role null
+                String roleNom = utilisateur.getRole() != null ? utilisateur.getRole().getNom().toUpperCase() : "USER";
+
                 return org.springframework.security.core.userdetails.User.builder()
                                 .username(utilisateur.getNomUtilisateur())
                                 .password(utilisateur.getMotDePasse())
-                                .authorities("ROLE_" + utilisateur.getRole().getNom())
+                                .authorities("ROLE_" + roleNom) // Spring Security exige le prefix ROLE_
                                 .disabled(utilisateur.getStatut() != StatutUtilisateur.ACTIF)
                                 .accountExpired(false)
                                 .accountLocked(false)
                                 .credentialsExpired(false)
                                 .build();
-
         }
 }

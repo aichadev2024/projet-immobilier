@@ -11,8 +11,6 @@ import com.projetimmo.projet_immobilier.repository.UtilisateurRepository;
 import com.projetimmo.projet_immobilier.security.JwtService;
 import com.projetimmo.projet_immobilier.service.interfaces.AuthService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +24,6 @@ public class AuthServiceImpl implements AuthService {
         private final RoleRepository roleRepository;
         private final PasswordEncoder passwordEncoder;
         private final JwtService jwtService;
-        private final AuthenticationManager authenticationManager;
 
         @Override
         public void register(RegisterRequest request) {
@@ -59,23 +56,23 @@ public class AuthServiceImpl implements AuthService {
 
                 Utilisateur utilisateur = utilisateurRepository
                                 .findByNomUtilisateur(request.getNomUtilisateur())
-                                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+                                .orElseThrow(() -> new RuntimeException("Identifiants invalides"));
 
-                // 🔥 TEST CLÉ
+                if (utilisateur.getStatut() != StatutUtilisateur.ACTIF) {
+                        throw new RuntimeException("Compte inactif");
+                }
+
                 boolean match = passwordEncoder.matches(
                                 request.getMotDePasse(),
                                 utilisateur.getMotDePasse());
 
                 System.out.println("🔐 PASSWORD MATCH = " + match);
 
-                // ⛔ SI ÇA AFFICHE false → LE PROBLÈME EST ICI
-                authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(
-                                                request.getNomUtilisateur(),
-                                                request.getMotDePasse()));
+                if (!match) {
+                        throw new RuntimeException("Identifiants invalides");
+                }
 
                 String token = jwtService.generateToken(utilisateur.getNomUtilisateur());
                 return new LoginResponse(token);
         }
-
 }

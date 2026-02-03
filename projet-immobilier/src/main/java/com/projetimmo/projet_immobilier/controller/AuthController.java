@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,31 +18,19 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
-            @RequestBody @Valid @NonNull LoginRequest request) {
-
-        LoginResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(
-            @RequestBody @Valid @NonNull RegisterRequest request) {
-
+    public ResponseEntity<String> register(@RequestBody @Valid RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Utilisateur créé avec succès");
     }
 
-    @RestController
-    @RequestMapping("/auth")
-    public class TestController {
-
-        @GetMapping("/test")
-        public String test() {
-            return "OK";
-        }
+    @GetMapping("/test")
+    public String test() {
+        return "OK";
     }
-
 }
