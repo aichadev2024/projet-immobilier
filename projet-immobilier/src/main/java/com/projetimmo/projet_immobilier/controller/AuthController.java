@@ -2,6 +2,7 @@ package com.projetimmo.projet_immobilier.controller;
 
 import com.projetimmo.projet_immobilier.dto.LoginRequest;
 import com.projetimmo.projet_immobilier.dto.LoginResponse;
+import com.projetimmo.projet_immobilier.dto.RefreshTokenRequest;
 import com.projetimmo.projet_immobilier.dto.RegisterRequest;
 import com.projetimmo.projet_immobilier.service.interfaces.AuthService;
 import jakarta.validation.Valid;
@@ -33,4 +34,12 @@ public class AuthController {
     public String test() {
         return "OK";
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(
+            @RequestBody RefreshTokenRequest request) {
+
+        return ResponseEntity.ok(authService.refreshToken(request.getRefreshToken()));
+    }
+
 }
