@@ -9,5 +9,12 @@ public interface BienService {
 
     Bien creerBien(BienRequest request);
 
+    List<Bien> listerMesBiens();
+
+    Bien modifierBien(Long idBien, BienRequest request);
+
+    void supprimerBien(Long idBien);
+
     List<Bien> listerBiens();
+
 }

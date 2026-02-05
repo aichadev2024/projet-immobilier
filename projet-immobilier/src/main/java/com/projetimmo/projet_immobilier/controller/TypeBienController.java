@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/type-biens")
@@ -14,6 +15,7 @@ public class TypeBienController {
 
     private final TypeBienService service;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public TypeBien create(@RequestBody TypeBien typeBien) {
         return service.create(typeBien);
@@ -29,11 +31,13 @@ public class TypeBienController {
         return service.findById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public TypeBien update(@PathVariable Long id, @RequestBody TypeBien typeBien) {
         return service.update(id, typeBien);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         service.delete(id);

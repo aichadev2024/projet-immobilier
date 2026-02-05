@@ -16,9 +16,15 @@ public class TypeBienServiceImpl implements TypeBienService {
 
     @Override
     public TypeBien create(TypeBien typeBien) {
+
         if (typeBien == null) {
             throw new IllegalArgumentException("TypeBien ne peut pas être null");
         }
+
+        if (repository.findByLibelleAndIsDeletedFalse(typeBien.getLibelle()).isPresent()) {
+            throw new RuntimeException("Type de bien déjà existant");
+        }
+
         return repository.save(typeBien);
     }
 
