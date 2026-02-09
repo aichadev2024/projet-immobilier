@@ -13,6 +13,4 @@ public interface BienRepository extends JpaRepository<Bien, Long> {
 
     List<Bien> findByUtilisateurAndIsDeletedFalse(Utilisateur utilisateur);
 
-    List<Bien> findByIsDeletedFalse();
-
 }

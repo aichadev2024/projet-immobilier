@@ -60,8 +60,7 @@ public class Utilisateur {
 
     private LocalDateTime updatedAt;
 
-    // 🔗 Un utilisateur a un seul rôle
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 

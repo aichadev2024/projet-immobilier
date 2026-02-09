@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import com.projetimmo.projet_immobilier.enums.StatutBien;
+
 @Entity
 @Table(name = "bien")
 @Getter
@@ -35,8 +37,9 @@ public class Bien {
     @Column(nullable = false)
     private String adresse;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String statutBien;
+    private StatutBien statutBien;
 
     @Builder.Default
     @Column(nullable = false)

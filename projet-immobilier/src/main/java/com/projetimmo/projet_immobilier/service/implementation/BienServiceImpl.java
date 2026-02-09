@@ -4,6 +4,7 @@ import com.projetimmo.projet_immobilier.dto.BienRequest;
 import com.projetimmo.projet_immobilier.entity.Bien;
 import com.projetimmo.projet_immobilier.entity.TypeBien;
 import com.projetimmo.projet_immobilier.entity.Utilisateur;
+import com.projetimmo.projet_immobilier.enums.ModeTarification;
 import com.projetimmo.projet_immobilier.enums.RoleType;
 import com.projetimmo.projet_immobilier.repository.BienRepository;
 import com.projetimmo.projet_immobilier.repository.TypeBienRepository;
@@ -29,9 +30,8 @@ public class BienServiceImpl implements BienService {
     @Override
     public Bien creerBien(BienRequest request) {
 
-        if (request == null || request.getIdTypeBien() == null) {
-            throw new IllegalArgumentException("Type de bien obligatoire");
-        }
+        Objects.requireNonNull(request, "La requête est obligatoire");
+        Objects.requireNonNull(request.getIdTypeBien(), "Type de bien obligatoire");
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -41,32 +41,57 @@ public class BienServiceImpl implements BienService {
             throw new RuntimeException("Utilisateur non authentifié");
         }
 
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(authentication.getName())
+        Utilisateur utilisateur = utilisateurRepository
+                .findByNomUtilisateur(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        if (!utilisateur.getRole().getNom().equals(RoleType.PROPRIETAIRE.name())) {
-            throw new RuntimeException("Seul un propriétaire peut effectuer cette action");
+        if (!RoleType.PROPRIETAIRE.name().equals(utilisateur.getRole().getNom())) {
+            throw new RuntimeException("Seul un propriétaire peut créer un bien");
         }
 
+        Long idTypeBien = Objects.requireNonNull(
+                request.getIdTypeBien(),
+                "Type de bien obligatoire");
+
         TypeBien typeBien = typeBienRepository
-                .findById(Objects.requireNonNull(request.getIdTypeBien()))
+                .findById(idTypeBien)
                 .orElseThrow(() -> new RuntimeException("Type de bien introuvable"));
 
-        Bien bien = Bien.builder()
-                .libelle(request.getLibelle())
-                .description(request.getDescription())
-                .superficie(request.getSuperficie())
-                .latitude(request.getLatitude())
-                .longitude(request.getLongitude())
-                .prixCalculer(request.getPrixCalculer())
-                .adresse(request.getAdresse())
-                .statutBien(request.getStatutBien())
-                .utilisateur(utilisateur)
-                .typeBien(typeBien)
-                .build();
+        Double prixCalculer;
 
-        Objects.requireNonNull(bien);
+        if (typeBien.getModeTarification() == ModeTarification.AU_M2) {
+
+            if (request.getSuperficie() == null) {
+                throw new RuntimeException("La superficie est obligatoire pour un bien au m²");
+            }
+
+            prixCalculer = request.getSuperficie() * typeBien.getTarifBase();
+
+        } else if (typeBien.getModeTarification() == ModeTarification.FORFAIT) {
+
+            prixCalculer = typeBien.getTarifBase();
+
+        } else {
+            throw new RuntimeException("Mode de tarification non pris en charge");
+        }
+
+        Bien bien = Objects.requireNonNull(
+                Bien.builder()
+                        .libelle(request.getLibelle())
+                        .description(request.getDescription())
+                        .superficie(request.getSuperficie())
+                        .latitude(request.getLatitude())
+                        .longitude(request.getLongitude())
+                        .adresse(request.getAdresse())
+                        .statutBien(request.getStatutBien())
+                        .prixCalculer(prixCalculer)
+                        .utilisateur(utilisateur)
+                        .typeBien(typeBien)
+                        .build(),
+                "Erreur lors de la création du bien");
+
         return bienRepository.save(bien);
+
     }
 
     // ===================== LISTER MES BIENS =====================
@@ -75,15 +100,15 @@ public class BienServiceImpl implements BienService {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || "anonymousUser".equals(authentication.getPrincipal())) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("Utilisateur non authentifié");
         }
 
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(authentication.getName())
+        Utilisateur utilisateur = utilisateurRepository
+                .findByNomUtilisateur(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-        if (!utilisateur.getRole().getNom().equals(RoleType.PROPRIETAIRE.name())) {
+
+        if (!RoleType.PROPRIETAIRE.name().equals(utilisateur.getRole().getNom())) {
             throw new RuntimeException("Accès refusé");
         }
 
@@ -94,19 +119,18 @@ public class BienServiceImpl implements BienService {
     @Override
     public Bien modifierBien(Long idBien, BienRequest request) {
 
-        if (idBien == null) {
-            throw new IllegalArgumentException("Id du bien obligatoire");
-        }
+        Objects.requireNonNull(idBien, "Id du bien obligatoire");
+        Objects.requireNonNull(request, "Requête obligatoire");
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(authentication.getName())
+        Utilisateur utilisateur = utilisateurRepository
+                .findByNomUtilisateur(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        Bien bien = bienRepository.findById(idBien)
+        Bien bien = bienRepository
+                .findById(idBien)
                 .orElseThrow(() -> new RuntimeException("Bien introuvable"));
 
-        if (!Objects.equals(bien.getUtilisateur().getId(), utilisateur.getId())) {
+        if (!bien.getUtilisateur().getId().equals(utilisateur.getId())) {
             throw new RuntimeException("Vous ne pouvez pas modifier ce bien");
         }
 
@@ -125,19 +149,17 @@ public class BienServiceImpl implements BienService {
     @Override
     public void supprimerBien(Long idBien) {
 
-        if (idBien == null) {
-            throw new IllegalArgumentException("Id du bien obligatoire");
-        }
+        Objects.requireNonNull(idBien, "Id du bien obligatoire");
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(authentication.getName())
+        Utilisateur utilisateur = utilisateurRepository
+                .findByNomUtilisateur(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        Bien bien = bienRepository.findById(idBien)
+        Bien bien = bienRepository
+                .findById(idBien)
                 .orElseThrow(() -> new RuntimeException("Bien introuvable"));
 
-        if (!Objects.equals(bien.getUtilisateur().getId(), utilisateur.getId())) {
+        if (!bien.getUtilisateur().getId().equals(utilisateur.getId())) {
             throw new RuntimeException("Vous ne pouvez pas supprimer ce bien");
         }
 

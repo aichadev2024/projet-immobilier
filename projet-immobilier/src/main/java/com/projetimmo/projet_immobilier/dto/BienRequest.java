@@ -1,5 +1,6 @@
 package com.projetimmo.projet_immobilier.dto;
 
+import com.projetimmo.projet_immobilier.enums.StatutBien;
 import lombok.Data;
 
 @Data
@@ -10,8 +11,10 @@ public class BienRequest {
     private Double superficie;
     private Double latitude;
     private Double longitude;
-    private Double prixCalculer;
+
     private String adresse;
-    private String statutBien;
+
+    private StatutBien statutBien; // ✅ ICI
+
     private Long idTypeBien;
 }
