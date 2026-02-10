@@ -50,6 +50,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/annonces/**").hasRole("PROPRIETAIRE")
                         .requestMatchers(HttpMethod.DELETE, "/api/annonces/**").hasRole("PROPRIETAIRE")
                         .requestMatchers(HttpMethod.GET, "/api/annonces/**").authenticated()
+                        // 🔐 MEDIAS
+                        .requestMatchers(HttpMethod.POST, "/api/medias/**").hasRole("PROPRIETAIRE")
+                        .requestMatchers(HttpMethod.GET, "/api/medias/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/medias/**").hasRole("PROPRIETAIRE")
 
                         // 🔐 TOUT LE RESTE
                         .anyRequest().authenticated())

@@ -5,12 +5,13 @@ import com.projetimmo.projet_immobilier.dto.AnnonceResponse;
 import com.projetimmo.projet_immobilier.entity.Annonce;
 import com.projetimmo.projet_immobilier.entity.Bien;
 import com.projetimmo.projet_immobilier.entity.Utilisateur;
-import com.projetimmo.projet_immobilier.enums.RoleType;
 import com.projetimmo.projet_immobilier.repository.AnnonceRepository;
 import com.projetimmo.projet_immobilier.repository.BienRepository;
 import com.projetimmo.projet_immobilier.repository.UtilisateurRepository;
 import com.projetimmo.projet_immobilier.service.interfaces.AnnonceService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AnnonceServiceImpl implements AnnonceService {
 
     private final AnnonceRepository annonceRepository;
@@ -33,20 +35,17 @@ public class AnnonceServiceImpl implements AnnonceService {
                 .getContext()
                 .getAuthentication();
 
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new RuntimeException("Utilisateur non authentifié");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("Utilisateur non authentifié");
         }
 
         return utilisateurRepository
                 .findByNomUtilisateur(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+                .orElseThrow(() -> new IllegalStateException("Utilisateur introuvable"));
     }
 
     // ================= MAPPING =================
     private AnnonceResponse mapToResponse(Annonce annonce) {
-
         return AnnonceResponse.builder()
                 .id(annonce.getId())
                 .typeAnnonce(annonce.getTypeAnnonce())
@@ -58,20 +57,17 @@ public class AnnonceServiceImpl implements AnnonceService {
 
     // ================= CRÉER ANNONCE =================
     @Override
+    @PreAuthorize("hasRole('PROPRIETAIRE')")
     public AnnonceResponse creerAnnonce(AnnonceRequest request) {
 
         Utilisateur utilisateur = getUtilisateurConnecte();
 
-        if (!RoleType.PROPRIETAIRE.name()
-                .equals(utilisateur.getRole().getNom())) {
-            throw new RuntimeException("Seul un propriétaire peut créer une annonce");
-        }
-
-        Bien bien = bienRepository.findById(Objects.requireNonNull(request.getIdBien()))
-                .orElseThrow(() -> new RuntimeException("Bien introuvable"));
+        Bien bien = bienRepository.findById(
+                Objects.requireNonNull(request.getIdBien(), "idBien obligatoire"))
+                .orElseThrow(() -> new IllegalArgumentException("Bien introuvable"));
 
         if (!bien.getUtilisateur().getId().equals(utilisateur.getId())) {
-            throw new RuntimeException("Ce bien ne vous appartient pas");
+            throw new SecurityException("Ce bien ne vous appartient pas");
         }
 
         Annonce annonce = Annonce.builder()
@@ -86,6 +82,7 @@ public class AnnonceServiceImpl implements AnnonceService {
 
     // ================= MES ANNONCES =================
     @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
     public List<AnnonceResponse> listerMesAnnonces() {
 
         Utilisateur utilisateur = getUtilisateurConnecte();
@@ -99,6 +96,7 @@ public class AnnonceServiceImpl implements AnnonceService {
 
     // ================= TOUTES LES ANNONCES =================
     @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
     public List<AnnonceResponse> listerToutesAnnonces() {
 
         return annonceRepository
@@ -110,25 +108,27 @@ public class AnnonceServiceImpl implements AnnonceService {
 
     // ================= GET PAR ID =================
     @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
     public AnnonceResponse getAnnonceById(Long id) {
 
         Annonce annonce = annonceRepository.findById(Objects.requireNonNull(id))
-                .orElseThrow(() -> new RuntimeException("Annonce introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
 
         return mapToResponse(annonce);
     }
 
     // ================= SUPPRESSION =================
     @Override
+    @PreAuthorize("hasRole('PROPRIETAIRE')")
     public void supprimerAnnonce(Long id) {
 
         Utilisateur utilisateur = getUtilisateurConnecte();
 
         Annonce annonce = annonceRepository.findById(Objects.requireNonNull(id))
-                .orElseThrow(() -> new RuntimeException("Annonce introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
 
         if (!annonce.getUtilisateur().getId().equals(utilisateur.getId())) {
-            throw new RuntimeException("Suppression non autorisée");
+            throw new SecurityException("Suppression non autorisée");
         }
 
         annonce.setIsDeleted(true);
