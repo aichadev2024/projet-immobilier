@@ -54,6 +54,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/medias/**").hasRole("PROPRIETAIRE")
                         .requestMatchers(HttpMethod.GET, "/api/medias/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/medias/**").hasRole("PROPRIETAIRE")
+                        // 🔐 DOCUMENTS
+                        .requestMatchers(HttpMethod.POST, "/api/documents/**").hasRole("PROPRIETAIRE")
+                        .requestMatchers(HttpMethod.DELETE, "/api/documents/**").hasRole("PROPRIETAIRE")
+                        .requestMatchers(HttpMethod.GET, "/api/documents/**").authenticated()
 
                         // 🔐 TOUT LE RESTE
                         .anyRequest().authenticated())

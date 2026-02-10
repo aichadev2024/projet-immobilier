@@ -1,0 +1,13 @@
+package com.projetimmo.projet_immobilier.service.interfaces;
+
+import com.projetimmo.projet_immobilier.dto.ReservationRequest;
+import com.projetimmo.projet_immobilier.dto.ReservationResponse;
+import java.util.List;
+
+public interface ReservationService {
+    ReservationResponse creerReservation(ReservationRequest request);
+
+    List<ReservationResponse> listerReservationsParBien(Long idBien);
+
+    void annulerReservation(Long id);
+}
