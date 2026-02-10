@@ -1,29 +1,26 @@
 package com.projetimmo.projet_immobilier.dto;
 
 import com.projetimmo.projet_immobilier.enums.StatutBien;
+import lombok.Builder;
 import lombok.Data;
-import jakarta.validation.constraints.*;
 
 @Data
-public class BienRequest {
+@Builder
+public class BienResponse {
 
-    @NotBlank
+    private Long id;
     private String libelle;
-
     private String description;
 
-    @Positive
     private Double superficie;
-
     private Double latitude;
     private Double longitude;
-
-    @NotBlank
     private String adresse;
 
-    @NotNull
+    private Double prixCalcule;
     private StatutBien statutBien;
 
-    @NotNull
+    // Infos TypeBien (sans relation lourde)
     private Long idTypeBien;
+    private String libelleTypeBien;
 }

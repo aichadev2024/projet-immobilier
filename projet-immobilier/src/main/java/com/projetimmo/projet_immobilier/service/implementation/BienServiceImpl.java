@@ -1,10 +1,10 @@
 package com.projetimmo.projet_immobilier.service.implementation;
 
 import com.projetimmo.projet_immobilier.dto.BienRequest;
+import com.projetimmo.projet_immobilier.dto.BienResponse;
 import com.projetimmo.projet_immobilier.entity.Bien;
 import com.projetimmo.projet_immobilier.entity.TypeBien;
 import com.projetimmo.projet_immobilier.entity.Utilisateur;
-import com.projetimmo.projet_immobilier.enums.ModeTarification;
 import com.projetimmo.projet_immobilier.enums.RoleType;
 import com.projetimmo.projet_immobilier.repository.BienRepository;
 import com.projetimmo.projet_immobilier.repository.TypeBienRepository;
@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,14 +27,12 @@ public class BienServiceImpl implements BienService {
     private final TypeBienRepository typeBienRepository;
     private final UtilisateurRepository utilisateurRepository;
 
-    // ===================== CREER BIEN =====================
-    @Override
-    public Bien creerBien(BienRequest request) {
+    // ===================== UTILISATEUR CONNECTÉ =====================
+    private Utilisateur getUtilisateurConnecte() {
 
-        Objects.requireNonNull(request, "La requête est obligatoire");
-        Objects.requireNonNull(request.getIdTypeBien(), "Type de bien obligatoire");
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
 
         if (authentication == null
                 || !authentication.isAuthenticated()
@@ -41,93 +40,109 @@ public class BienServiceImpl implements BienService {
             throw new RuntimeException("Utilisateur non authentifié");
         }
 
-        Utilisateur utilisateur = utilisateurRepository
+        return utilisateurRepository
                 .findByNomUtilisateur(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+    }
 
-        if (!RoleType.PROPRIETAIRE.name().equals(utilisateur.getRole().getNom())) {
+    // ===================== CALCUL PRIX =====================
+    private BigDecimal calculerPrix(TypeBien typeBien, Double superficie) {
+
+        switch (typeBien.getModeTarification()) {
+            case AU_M2:
+                if (superficie == null) {
+                    throw new IllegalArgumentException("Superficie obligatoire");
+                }
+                return typeBien.getTarifBase()
+                        .multiply(BigDecimal.valueOf(superficie));
+
+            case FORFAIT:
+                return typeBien.getTarifBase();
+
+            default:
+                throw new IllegalStateException("Mode de tarification inconnu");
+        }
+    }
+
+    // ===================== MAPPING RESPONSE =====================
+    private BienResponse mapToResponse(Bien bien) {
+
+        return BienResponse.builder()
+                .id(bien.getId())
+                .libelle(bien.getLibelle())
+                .description(bien.getDescription())
+                .superficie(bien.getSuperficie())
+                .latitude(bien.getLatitude())
+                .longitude(bien.getLongitude())
+                .adresse(bien.getAdresse())
+                .prixCalcule(
+                        bien.getPrixCalculer() != null
+                                ? bien.getPrixCalculer().doubleValue()
+                                : null)
+                .statutBien(bien.getStatutBien())
+                .idTypeBien(bien.getTypeBien().getId())
+                .libelleTypeBien(bien.getTypeBien().getLibelle())
+                .build();
+    }
+
+    // ===================== CRÉER BIEN =====================
+    @Override
+    public BienResponse creerBien(BienRequest request) {
+
+        Utilisateur utilisateur = getUtilisateurConnecte();
+
+        if (!RoleType.PROPRIETAIRE.name()
+                .equals(utilisateur.getRole().getNom())) {
             throw new RuntimeException("Seul un propriétaire peut créer un bien");
         }
 
-        Long idTypeBien = Objects.requireNonNull(
-                request.getIdTypeBien(),
-                "Type de bien obligatoire");
-
         TypeBien typeBien = typeBienRepository
-                .findById(idTypeBien)
+                .findById(Objects.requireNonNull(request.getIdTypeBien()))
                 .orElseThrow(() -> new RuntimeException("Type de bien introuvable"));
 
-        Double prixCalculer;
+        BigDecimal prixCalculer = calculerPrix(typeBien, request.getSuperficie());
 
-        if (typeBien.getModeTarification() == ModeTarification.AU_M2) {
+        Bien bien = Bien.builder()
+                .libelle(request.getLibelle())
+                .description(request.getDescription())
+                .superficie(request.getSuperficie())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .adresse(request.getAdresse())
+                .statutBien(request.getStatutBien())
+                .prixCalculer(prixCalculer)
+                .utilisateur(utilisateur)
+                .typeBien(typeBien)
+                .build();
 
-            if (request.getSuperficie() == null) {
-                throw new RuntimeException("La superficie est obligatoire pour un bien au m²");
-            }
-
-            prixCalculer = request.getSuperficie() * typeBien.getTarifBase();
-
-        } else if (typeBien.getModeTarification() == ModeTarification.FORFAIT) {
-
-            prixCalculer = typeBien.getTarifBase();
-
-        } else {
-            throw new RuntimeException("Mode de tarification non pris en charge");
-        }
-
-        Bien bien = Objects.requireNonNull(
-                Bien.builder()
-                        .libelle(request.getLibelle())
-                        .description(request.getDescription())
-                        .superficie(request.getSuperficie())
-                        .latitude(request.getLatitude())
-                        .longitude(request.getLongitude())
-                        .adresse(request.getAdresse())
-                        .statutBien(request.getStatutBien())
-                        .prixCalculer(prixCalculer)
-                        .utilisateur(utilisateur)
-                        .typeBien(typeBien)
-                        .build(),
-                "Erreur lors de la création du bien");
-
-        return bienRepository.save(bien);
-
+        return mapToResponse(bienRepository.save(Objects.requireNonNull(bien)));
     }
 
-    // ===================== LISTER MES BIENS =====================
+    // ===================== MES BIENS =====================
     @Override
-    public List<Bien> listerMesBiens() {
+    public List<BienResponse> listerMesBiens() {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Utilisateur utilisateur = getUtilisateurConnecte();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        Utilisateur utilisateur = utilisateurRepository
-                .findByNomUtilisateur(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
-        if (!RoleType.PROPRIETAIRE.name().equals(utilisateur.getRole().getNom())) {
+        if (!RoleType.PROPRIETAIRE.name()
+                .equals(utilisateur.getRole().getNom())) {
             throw new RuntimeException("Accès refusé");
         }
 
-        return bienRepository.findByUtilisateurAndIsDeletedFalse(utilisateur);
+        return bienRepository
+                .findByUtilisateurAndIsDeletedFalse(utilisateur)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     // ===================== MODIFIER BIEN =====================
     @Override
-    public Bien modifierBien(Long idBien, BienRequest request) {
+    public BienResponse modifierBien(Long idBien, BienRequest request) {
 
-        Objects.requireNonNull(idBien, "Id du bien obligatoire");
-        Objects.requireNonNull(request, "Requête obligatoire");
+        Utilisateur utilisateur = getUtilisateurConnecte();
 
-        Utilisateur utilisateur = utilisateurRepository
-                .findByNomUtilisateur(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
-        Bien bien = bienRepository
-                .findById(idBien)
+        Bien bien = bienRepository.findById(Objects.requireNonNull(idBien))
                 .orElseThrow(() -> new RuntimeException("Bien introuvable"));
 
         if (!bien.getUtilisateur().getId().equals(utilisateur.getId())) {
@@ -142,21 +157,16 @@ public class BienServiceImpl implements BienService {
         bien.setAdresse(request.getAdresse());
         bien.setStatutBien(request.getStatutBien());
 
-        return bienRepository.save(bien);
+        return mapToResponse(bienRepository.save(bien));
     }
 
     // ===================== SUPPRESSION LOGIQUE =====================
     @Override
     public void supprimerBien(Long idBien) {
 
-        Objects.requireNonNull(idBien, "Id du bien obligatoire");
+        Utilisateur utilisateur = getUtilisateurConnecte();
 
-        Utilisateur utilisateur = utilisateurRepository
-                .findByNomUtilisateur(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
-        Bien bien = bienRepository
-                .findById(idBien)
+        Bien bien = bienRepository.findById(Objects.requireNonNull(idBien))
                 .orElseThrow(() -> new RuntimeException("Bien introuvable"));
 
         if (!bien.getUtilisateur().getId().equals(utilisateur.getId())) {
@@ -167,9 +177,13 @@ public class BienServiceImpl implements BienService {
         bienRepository.save(bien);
     }
 
-    // ===================== LISTER TOUS LES BIENS =====================
+    // ===================== TOUS LES BIENS =====================
     @Override
-    public List<Bien> listerBiens() {
-        return bienRepository.findByIsDeletedFalse();
+    public List<BienResponse> listerBiens() {
+
+        return bienRepository.findByIsDeletedFalse()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 }

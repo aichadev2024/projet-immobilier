@@ -2,6 +2,8 @@ package com.projetimmo.projet_immobilier.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import com.projetimmo.projet_immobilier.enums.ModeTarification;
 
@@ -27,8 +29,8 @@ public class TypeBien {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ModeTarification modeTarification;
-    @Column(nullable = false)
-    private Double tarifBase;
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal tarifBase;
 
     @Builder.Default
     @Column(nullable = false)

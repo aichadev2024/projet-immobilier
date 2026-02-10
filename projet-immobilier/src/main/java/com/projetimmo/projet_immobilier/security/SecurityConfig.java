@@ -46,6 +46,10 @@ public class SecurityConfig {
 
                         // 🔐 BIENS
                         .requestMatchers("/api/biens/**").hasRole("PROPRIETAIRE")
+                        // 🔐 ANNONCES
+                        .requestMatchers(HttpMethod.POST, "/api/annonces/**").hasRole("PROPRIETAIRE")
+                        .requestMatchers(HttpMethod.DELETE, "/api/annonces/**").hasRole("PROPRIETAIRE")
+                        .requestMatchers(HttpMethod.GET, "/api/annonces/**").authenticated()
 
                         // 🔐 TOUT LE RESTE
                         .anyRequest().authenticated())

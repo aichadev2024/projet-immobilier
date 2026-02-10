@@ -3,44 +3,31 @@ package com.projetimmo.projet_immobilier.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.projetimmo.projet_immobilier.enums.StatutBien;
+import com.projetimmo.projet_immobilier.enums.StatutAnnonce;
+import com.projetimmo.projet_immobilier.enums.TypeAnnonce;
 
 @Entity
-@Table(name = "bien")
+@Table(name = "annonce")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Bien {
+public class Annonce {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String libelle;
-
-    private String description;
-
-    private Double superficie;
-
-    private Double latitude;
-
-    private Double longitude;
-
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal prixCalculer;
-
-    @Column(nullable = false)
-    private String adresse;
+    private TypeAnnonce typeAnnonce;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private StatutBien statutBien;
+    private StatutAnnonce statut;
 
     @Builder.Default
     @Column(nullable = false)
@@ -58,10 +45,10 @@ public class Bien {
     @JoinColumn(name = "id_utilisateur", nullable = false)
     private Utilisateur utilisateur;
 
-    // 🔗 TYPE DE BIEN
+    // 🔗 BIEN
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_type_bien", nullable = false)
-    private TypeBien typeBien;
+    @JoinColumn(name = "id_bien", nullable = false)
+    private Bien bien;
 
     @PrePersist
     void onCreate() {
